@@ -22,7 +22,7 @@ jobs:
       DEVICE: ${{ github.event.client_payload.device || github.event.inputs.device }}
       BRANCH: ${{ github.event.client_payload.branch || github.event.inputs.branch }}
       TG: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-    if: github.repository_owner=='stupidloud'
+    if: github.repository_owner=='asxs123'
 
     steps:
 
@@ -164,39 +164,39 @@ jobs:
           name: OpenWrt_buildinfo
           path: ./artifact/buildinfo/
 
-      - name: Save cache state
-        if: env.TG
-        run: |
-          cd
-          sleep 60
-          sudo umount lede
-          sudo mount -o compress=no,nodatacow,nodatasum $LOOP_DEVICE lede
-          cd lede/; pv /dev/zero > zerospace || true; sync; rm -f zerospace; cd -
-          sleep 60
-          sudo umount lede
-          sudo losetup -d $LOOP_DEVICE
-          export AUTH="Authorization: token ${{ secrets.SEC_TOKEN }}"
-          export cache_path='github.com/repositories/233224580/releases'
-          export cache_repo_id='39020554'
-          #zstdmt -c --adapt --long lede.img | parallel --wc --block 1.99G --pipe \
-          #'curl -s --data-binary @- -H "$AUTH" -H "Content-Type: application/octet-stream" https://uploads.$cache_path/$cache_repo_id/assets?name=lede.'$DEVICE'.img.zst.0{#} > /dev/null'
-          zstdmt -c --long /mnt/lede.img | split --numeric=1 -b 2000m - lede.$DEVICE.img.zst.
-          #for f in *img.zst*
-          #do
-          #  while true; do curl --data-binary @$f -H "$AUTH" -H 'Content-Type: application/octet-stream' "https://uploads.$cache_path/$cache_repo_id/assets?name=$f" && break || true; done
-          #done
-          while true; do
-          ret=$(curl -sH "$AUTH" "https://api.$cache_path/tags/cache")
-          echo $ret | jq -r '.assets[] | select(.name | contains ("'$DEVICE'.img")).id' | \
-          xargs -ri curl -X DELETE -H "$AUTH" "https://api.$cache_path/assets/{}"
-          echo $ret | jq -r '.assets[] | select(.name == "ib-'$DEVICE'.tar.xz").id' | \
-          xargs -ri curl -X DELETE -H "$AUTH" "https://api.$cache_path/assets/{}"
-          ls *img.zst* ib-$DEVICE.tar.xz | parallel --wc 'while true; do curl -T {} -H "$AUTH" -H "Content-Type: application/octet-stream" "https://uploads.$cache_path/$cache_repo_id/assets?name={}" && break || true; done'
-          set +e
-          for i in {1..20}; do curl -sL --fail https://github.com/stupidloud/sshactions/releases/download/cache/lede.$DEVICE.img.zst.0$i || break; done | zstdmt -d -o /dev/null
-          if [ $? -eq 0 ]; then break; fi
-          done
-          set -e
+      # - name: Save cache state
+      #   if: env.TG
+      #   run: |
+      #     cd
+      #     sleep 60
+      #     sudo umount lede
+      #     sudo mount -o compress=no,nodatacow,nodatasum $LOOP_DEVICE lede
+      #     cd lede/; pv /dev/zero > zerospace || true; sync; rm -f zerospace; cd -
+      #     sleep 60
+      #     sudo umount lede
+      #     sudo losetup -d $LOOP_DEVICE
+      #     export AUTH="Authorization: token ${{ secrets.SEC_TOKEN }}"
+      #     export cache_path='github.com/repositories/233224580/releases'
+      #     export cache_repo_id='39020554'
+      #     #zstdmt -c --adapt --long lede.img | parallel --wc --block 1.99G --pipe \
+      #     #'curl -s --data-binary @- -H "$AUTH" -H "Content-Type: application/octet-stream" https://uploads.$cache_path/$cache_repo_id/assets?name=lede.'$DEVICE'.img.zst.0{#} > /dev/null'
+      #     zstdmt -c --long /mnt/lede.img | split --numeric=1 -b 2000m - lede.$DEVICE.img.zst.
+      #     #for f in *img.zst*
+      #     #do
+      #     #  while true; do curl --data-binary @$f -H "$AUTH" -H 'Content-Type: application/octet-stream' "https://uploads.$cache_path/$cache_repo_id/assets?name=$f" && break || true; done
+      #     #done
+      #     while true; do
+      #     ret=$(curl -sH "$AUTH" "https://api.$cache_path/tags/cache")
+      #     echo $ret | jq -r '.assets[] | select(.name | contains ("'$DEVICE'.img")).id' | \
+      #     xargs -ri curl -X DELETE -H "$AUTH" "https://api.$cache_path/assets/{}"
+      #     echo $ret | jq -r '.assets[] | select(.name == "ib-'$DEVICE'.tar.xz").id' | \
+      #     xargs -ri curl -X DELETE -H "$AUTH" "https://api.$cache_path/assets/{}"
+      #     ls *img.zst* ib-$DEVICE.tar.xz | parallel --wc 'while true; do curl -T {} -H "$AUTH" -H "Content-Type: application/octet-stream" "https://uploads.$cache_path/$cache_repo_id/assets?name={}" && break || true; done'
+      #     set +e
+      #     for i in {1..20}; do curl -sL --fail https://github.com/stupidloud/sshactions/releases/download/cache/lede.$DEVICE.img.zst.0$i || break; done | zstdmt -d -o /dev/null
+      #     if [ $? -eq 0 ]; then break; fi
+      #     done
+      #     set -e
 
       - name: Send tg notification
         if: env.TG
